@@ -1,17 +1,30 @@
 import streamlit as st
 import pandas as pd
 
+#def load_data():
+#    xls = pd.ExcelFile('football_stats.xlsx')
+#    players_df = pd.read_excel(xls, sheet_name='Players')
+#    stats_df = pd.read_excel(xls, sheet_name='Stats')
+#    teams_df = pd.read_excel(xls, sheet_name='Teams')
+#    players_df = players_df.drop(columns=['player_id'], errors='ignore')
+#    stats_df = stats_df.drop(columns=['player_id'], errors='ignore')
+#    players_df['player_name'] = players_df['player_name'].fillna("Неизвестно")
+#    players_df['player_name'] = players_df['player_name'].astype(str)
+#    if 'date' in stats_df.columns:
+#        stats_df['date'] = pd.to_datetime(stats_df['date']).dt.strftime('%d.%m.%y')
+#    return players_df, stats_df, teams_df
+
 def load_data():
-    xls = pd.ExcelFile('football_stats.xlsx')
-    players_df = pd.read_excel(xls, sheet_name='Players')
-    stats_df = pd.read_excel(xls, sheet_name='Stats')
-    teams_df = pd.read_excel(xls, sheet_name='Teams')
+    players_df = pd.read_csv('players.csv')
+    stats_df = pd.read_csv('stats.csv')
+    teams_df = pd.read_csv('teams.csv')
     players_df = players_df.drop(columns=['player_id'], errors='ignore')
     stats_df = stats_df.drop(columns=['player_id'], errors='ignore')
     players_df['player_name'] = players_df['player_name'].fillna("Неизвестно")
     players_df['player_name'] = players_df['player_name'].astype(str)
     if 'date' in stats_df.columns:
         stats_df['date'] = pd.to_datetime(stats_df['date']).dt.strftime('%d.%m.%y')
+    
     return players_df, stats_df, teams_df
 
 st.title('Лето 2025')

@@ -1,5 +1,5 @@
 # football_stats
-Simple football stats streamlit info page
+Simple football stats streamlit (python) info page
 
 # START LOCAL SERVER
 
