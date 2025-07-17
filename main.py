@@ -24,7 +24,7 @@ if menu == "Главная":
     st.subheader(f"Игр сыграно: {total_games}")
     st.subheader(f"Голов забито: {total_goals}")
     st.subheader(f"Пасов отдано: {total_assists}")
-    st.subheader("Рыжий пришел на футбол: 1")
+    st.subheader("Рыжий пришел на футбол: 2")
     st.write("© MitinoSarayTeam")
 elif menu == "Топ":
     points_df = players_df[['player_name', 'points']].sort_values(by='points', ascending=False)
