@@ -85,9 +85,15 @@ elif menu == "Личная стат.":
             'wins_on_date': 'Победы'
         })
         st.subheader(f'Статистика по игроку: {player_name}')
+        
+        unique_days = player_stats['Число'].nunique()
+
         total_goals = player_stats['Голы'].sum()
         total_games = player_stats['Победы'].sum()
         total_assists = player_stats['Пасы'].sum()
+
+        player_val = [total_goals/unique_days, total_assists/unique_days, total_games/unique_days]
+        
         st.write(f"Побед: {total_games} Голов: {total_goals} Пасов: {total_assists}")
         st.dataframe(player_stats, use_container_width=True, hide_index=True)
         comparison_player_stats = comparison_player_stats.drop(columns=['player_name'])
@@ -98,11 +104,16 @@ elif menu == "Личная стат.":
             'assists_on_date': 'Пасы',
             'wins_on_date': 'Победы'
         })
+        
+        comparison_unique_days = comparison_player_stats['Число'].nunique()
+
         comparison_total_goals = comparison_player_stats['Голы'].sum()
         comparison_total_games = comparison_player_stats['Победы'].sum()
         comparison_total_assists = comparison_player_stats['Пасы'].sum()
-        comparison_val = [comparison_total_goals, comparison_total_assists, comparison_total_games]
+        comparison_val = [comparison_total_goals/comparison_unique_days,
+                          comparison_total_assists/comparison_unique_days,
+                          comparison_total_games/comparison_unique_days]
         
-        radar_chart([total_goals, total_assists, total_games], comparison_val, player_name, comparison_player_name)
+        radar_chart(player_val, comparison_val, player_name, comparison_player_name)
     else:
         st.write("Нет данных для одного или обоих выбранных игроков.")
