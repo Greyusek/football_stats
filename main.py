@@ -22,7 +22,7 @@ def radar_chart(val, comparison_val, player_name, comparison_player_name):
         r=comparison_val,
         theta=['голы', 'пасы', 'победы']))
     fig = px.line_polar(df, r='r', theta='theta', line_close=True, title="Треугольник силы")
-    fig.add_scatterpolar(r=df['r'], theta=df['theta'], fill='toself', name=player_name, line=dict(color='blue'))
+    fig.add_scatterpolar(r=df['r'], theta=df['theta'], fill='toself', name=player_name, line=dict(color='red'))
     fig.add_scatterpolar(r=dfa['r'], theta=dfa['theta'], fill='toself', name=comparison_player_name, line=dict(color='orange'))
     st.write(fig)
 
