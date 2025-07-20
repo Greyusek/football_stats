@@ -14,7 +14,7 @@ def load_data():
         stats_df['date'] = pd.to_datetime(stats_df['date']).dt.strftime('%d.%m.%y')
     return players_df, stats_df, teams_df
 
-def radar_chart(val, comparison_val, comparison_player_name):  
+def radar_chart(val, comparison_val, player_name, comparison_player_name):  
     df = pd.DataFrame(dict(
         r=val,
         theta=['голы', 'пасы', 'победы']))
@@ -22,7 +22,7 @@ def radar_chart(val, comparison_val, comparison_player_name):
         r=comparison_val,
         theta=['голы', 'пасы', 'победы']))
     fig = px.line_polar(df, r='r', theta='theta', line_close=True, title="Треугольник силы")
-    fig.add_scatterpolar(r=df['r'], theta=df['theta'], fill='toself', name='Ваши данные', line=dict(color='blue'))
+    fig.add_scatterpolar(r=df['r'], theta=df['theta'], fill='toself', name=player_name, line=dict(color='blue'))
     fig.add_scatterpolar(r=dfa['r'], theta=dfa['theta'], fill='toself', name=comparison_player_name, line=dict(color='orange'))
     st.write(fig)
 
@@ -103,6 +103,6 @@ elif menu == "Личная стат.":
         comparison_total_assists = comparison_player_stats['Пасы'].sum()
         comparison_val = [comparison_total_goals, comparison_total_assists, comparison_total_games]
         
-        radar_chart([total_goals, total_assists, total_games], comparison_val, comparison_player_name)
+        radar_chart([total_goals, total_assists, total_games], comparison_val, player_name, comparison_player_name)
     else:
         st.write("Нет данных для одного или обоих выбранных игроков.")
