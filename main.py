@@ -17,13 +17,13 @@ def load_data():
 def radar_chart(val, comparison_val, comparison_player_name):  
     df = pd.DataFrame(dict(
         r=val,
-        theta=['голы','пасы','победы']))
+        theta=['голы', 'пасы', 'победы']))
     dfa = pd.DataFrame(dict(
         r=comparison_val,
-        theta=['голы','пасы','победы']))
-    
+        theta=['голы', 'пасы', 'победы']))
     fig = px.line_polar(df, r='r', theta='theta', line_close=True, title="Треугольник силы")
-    fig.add_scatterpolar(r=dfa['r'], theta=dfa['theta'], fill='toself', name=comparison_player_name, line=dict(color='green'))
+    fig.add_scatterpolar(r=df['r'], theta=df['theta'], fill='toself', name='Ваши данные', line=dict(color='blue'))
+    fig.add_scatterpolar(r=dfa['r'], theta=dfa['theta'], fill='toself', name=comparison_player_name, line=dict(color='orange'))
     st.write(fig)
 
 st.title('Лето 2025')
