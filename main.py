@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-
+import plotly.express as px
 
 def load_data():
     players_df = pd.read_csv('players.csv')
@@ -13,6 +13,18 @@ def load_data():
     if 'date' in stats_df.columns:
         stats_df['date'] = pd.to_datetime(stats_df['date']).dt.strftime('%d.%m.%y')
     return players_df, stats_df, teams_df
+
+def radar_chart(val, comparison_val, comparison_player_name):  
+    df = pd.DataFrame(dict(
+        r=val,
+        theta=['голы','пасы','победы']))
+    dfa = pd.DataFrame(dict(
+        r=comparison_val,
+        theta=['голы','пасы','победы']))
+    
+    fig = px.line_polar(df, r='r', theta='theta', line_close=True, title="Треугольник силы")
+    fig.add_scatterpolar(r=dfa['r'], theta=dfa['theta'], fill='toself', name=comparison_player_name, line=dict(color='green'))
+    st.write(fig)
 
 st.title('Лето 2025')
 players_df, stats_df, teams_df = load_data()
@@ -60,12 +72,13 @@ elif menu == "Общая стат.":
     st.dataframe(filtered_stats_df, use_container_width=True, hide_index=True, height=750)
 elif menu == "Личная стат.":
     player_name = st.selectbox("Выберите игрока:", players_df['player_name'].unique())
+    comparison_player_name = st.selectbox("Выберите игрока для сравнения:", players_df['player_name'].unique())
     player_stats = stats_df[stats_df['player_name'] == player_name]
-    if not player_stats.empty:
+    comparison_player_stats = stats_df[stats_df['player_name'] == comparison_player_name]  
+    if not player_stats.empty and not comparison_player_stats.empty:
         player_stats = player_stats.drop(columns=['player_name'])
         player_stats = player_stats.rename(columns={
             'date': 'Число',
-            'player_name': 'Игрок',
             'team_number': '№ команды',
             'goals_on_date': 'Голы',
             'assists_on_date': 'Пасы',
@@ -75,7 +88,21 @@ elif menu == "Личная стат.":
         total_goals = player_stats['Голы'].sum()
         total_games = player_stats['Победы'].sum()
         total_assists = player_stats['Пасы'].sum()
-        st.write(f"Побед: {total_games} Голов: {total_goals} Пасов: {total_assists}")      
+        st.write(f"Побед: {total_games} Голов: {total_goals} Пасов: {total_assists}")
         st.dataframe(player_stats, use_container_width=True, hide_index=True)
+        comparison_player_stats = comparison_player_stats.drop(columns=['player_name'])
+        comparison_player_stats = comparison_player_stats.rename(columns={
+            'date': 'Число',
+            'team_number': '№ команды',
+            'goals_on_date': 'Голы',
+            'assists_on_date': 'Пасы',
+            'wins_on_date': 'Победы'
+        })
+        comparison_total_goals = comparison_player_stats['Голы'].sum()
+        comparison_total_games = comparison_player_stats['Победы'].sum()
+        comparison_total_assists = comparison_player_stats['Пасы'].sum()
+        comparison_val = [comparison_total_goals, comparison_total_assists, comparison_total_games]
+        
+        radar_chart([total_goals, total_assists, total_games], comparison_val, comparison_player_name)
     else:
-        st.write("Нет данных для выбранного игрока.")
+        st.write("Нет данных для одного или обоих выбранных игроков.")
