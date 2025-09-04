@@ -59,12 +59,17 @@ def season_filter_players_stats(season, rules):
 def season_filter(season):
     start_date = pd.to_datetime(season[0])
     end_date = pd.to_datetime(season[1])
+    
+    teams_df = pd.read_csv('teams.csv')
+
     teams_df['date'] = pd.to_datetime(teams_df['date'], errors='coerce')
     mask = (teams_df['date'] >= start_date) & (teams_df['date'] <= end_date)
     filtered_teams = teams_df.loc[mask]
     total_wins = int(filtered_teams['wins_on_date'].sum()) 
     total_draws = int(filtered_teams['draws_on_date'].sum()/2)
     total_games = total_wins + total_draws
+    
+    stats_df = pd.read_csv('stats.csv')
 
     stats_df['date'] = pd.to_datetime(stats_df['date'], errors='coerce')
     mask = (stats_df['date'] >= start_date) & (stats_df['date'] <= end_date)
@@ -93,7 +98,7 @@ if menu == "Главная":
     st.subheader(f"Голов забито: {total_goals}")
     st.subheader(f"Пасов отдано: {total_assists}")
     st.subheader(f"Shutout: {total_saves}")
-    st.subheader("Рыжий пришел на футбол: 2")
+    st.subheader("Рыжий не пришел на футбол: 1")
     st.write("© MitinoSarayTeam")
 elif menu == "Топ":
     st.title('Осень 2025')
