@@ -177,7 +177,7 @@ elif menu == "Личная стат.":
         total_assists = player_stats['Пасы'].sum()
         total_saves = player_stats['Отстоял на ноль'].sum()
 
-        player_val = [total_goals/unique_days, total_assists/unique_days, total_games/unique_days, total_draws/unique_days, total_saves/unique_days]
+        player_val = [total_goals/unique_days, total_assists/unique_days, total_games/unique_days, total_saves/unique_days, total_draws/unique_days]
         
         st.write(f"Побед: {total_games} Ничьих {total_draws} Голов: {total_goals} Пасов: {total_assists} Отстоял на ноль: {total_saves}")
         st.dataframe(player_stats, use_container_width=True, hide_index=True)
@@ -204,8 +204,9 @@ elif menu == "Личная стат.":
         comparison_val = [comparison_total_goals/comparison_unique_days,
                           comparison_total_assists/comparison_unique_days,
                           comparison_total_games/comparison_unique_days,
-                          comparison_total_draws/comparison_unique_days,
-                          comparison_total_saves/comparison_unique_days]
+                          comparison_total_saves/comparison_unique_days,
+                          comparison_total_draws/comparison_unique_days]
+                          
         
         radar_chart(player_val, comparison_val, player_name, comparison_player_name)
     else:
@@ -287,7 +288,7 @@ elif menu == "Архив":
                 total_assists = player_stats['Пасы'].sum()
                 total_saves = player_stats['Отстоял на ноль'].sum()
 
-                player_val = [total_goals/unique_days, total_assists/unique_days, total_games/unique_days, total_draws/unique_days, total_saves/unique_days]
+                player_val = [total_goals/unique_days, total_assists/unique_days, total_games/unique_days, total_saves/unique_days, total_draws/unique_days]
         
                 st.write(f"Побед: {total_games} Ничьих: {total_draws} Голов: {total_goals} Пасов: {total_assists} Отстоял на ноль: {total_saves}")
                 st.dataframe(player_stats, use_container_width=True, hide_index=True)
@@ -313,8 +314,8 @@ elif menu == "Архив":
                 comparison_val = [comparison_total_goals/comparison_unique_days,
                                   comparison_total_assists/comparison_unique_days,
                                   comparison_total_games/comparison_unique_days,
-                                  comparison_total_draws/comparison_unique_days,
-                                  comparison_total_saves/comparison_unique_days]
+                                  comparison_total_saves/comparison_unique_days,
+                                  comparison_total_draws/comparison_unique_days]
         
                 radar_chart(player_val, comparison_val, player_name, comparison_player_name)
             else:
