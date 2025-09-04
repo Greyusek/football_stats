@@ -20,10 +20,10 @@ def load_data():
 def radar_chart(val, comparison_val, player_name, comparison_player_name):  
     df = pd.DataFrame(dict(
         r=val,
-        theta=['голы', 'пасы', 'победы','на ноль', 'ничьи']))
+        theta=['голы', 'пасы', 'победы','ничьи', 'на ноль']))
     dfa = pd.DataFrame(dict(
         r=comparison_val,
-        theta=['голы', 'пасы', 'победы', 'на ноль', 'ничьи']))
+        theta=['голы', 'пасы', 'победы', 'ничьи', 'на ноль']))
     fig = px.line_polar(df, r='r', theta='theta', line_close=True, title="Пятиугольник силы")
     fig.add_scatterpolar(r=df['r'], theta=df['theta'], fill='toself', name=player_name, line=dict(color='red'))
     fig.add_scatterpolar(r=dfa['r'], theta=dfa['theta'], fill='toself', name=comparison_player_name, line=dict(color='orange'))
