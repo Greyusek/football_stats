@@ -22,3 +22,6 @@ The application runs on the free streamlit server.
 Since it does not support processing excle files and the openpyxl library,
 I put a converter file in the repository that creates three files in csv format from the football_stats.xlsx file:
 players.csv, stats.csv and teams.csv
+
+### sclerosis
+git pull origin main
