@@ -109,7 +109,7 @@ if menu == "Барышиха":
         st.subheader(f"Голов забито: {total_goals}")
         st.subheader(f"Пасов отдано: {total_assists}")
         st.subheader(f"Shutout: {total_saves}")
-        st.subheader("Рыжий не пришел на футбол: 1")
+        st.subheader("Рыжий не пришел на футбол")
         st.write("© MitinoSarayTeam")
     elif sub_menu == "Топ":
         st.title('Осень 2025 (БАРЫШИХА)')
@@ -340,7 +340,7 @@ if menu == "УПК":
         st.subheader(f"Голов забито: {total_goals}")
         st.subheader(f"Пасов отдано: {total_assists}")
         st.subheader(f"Shutout: {total_saves}")
-        st.subheader("Рыжий не пришел на футбол: 1")
+        st.subheader("Рыжий не пришел на футбол")
         st.write("© MitinoSarayTeam")
     elif sub_menu == "Топ":
         st.title('Осень 2025 (УПК)')
