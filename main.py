@@ -110,7 +110,7 @@ if menu == "Барышиха":
         st.subheader(f"Пасов отдано: {total_assists}")
         st.subheader(f"Shutout: {total_saves}")
         st.subheader("Рыжий не пришел на футбол")
-        st.subheader("Дней без травм: 0")
+        #st.subheader("Дней без травм: 0")
         st.write("© MitinoSarayTeam")
     elif sub_menu == "Топ":
         st.title('Осень 2025 (БАРЫШИХА)')
@@ -234,7 +234,7 @@ if menu == "Барышиха":
                 st.subheader(f"Голов забито: {total_goals}")
                 st.subheader(f"Пасов отдано: {total_assists}")
                 st.subheader("Рыжий пришел на футбол: 2")
-                st.subheader("Дней без травм: 0")
+                #st.subheader("Дней без травм: 0")
                 st.write("© MitinoSarayTeam")
             elif player_submenu == "Топ":
                 players_df = season_filter_players_stats(SUMMER2025, 1, BARISHIHA)
@@ -343,7 +343,7 @@ if menu == "УПК":
         st.subheader(f"Пасов отдано: {total_assists}")
         st.subheader(f"Shutout: {total_saves}")
         st.subheader("Рыжий не пришел на футбол")
-        st.subheader("Дней без травм: 0")
+        #st.subheader("Дней без травм: 0")
         st.write("© MitinoSarayTeam")
     elif sub_menu == "Топ":
         st.title('Осень 2025 (УПК)')
