@@ -464,7 +464,7 @@ if menu == "Барышиха":
 if menu == "УПК":
     sub_menu = st.sidebar.radio("УПК:", ("Главная", "Топ", "Общая стат.", "Личная стат.", "Архив"))
     if sub_menu == "Главная":
-        st.title('Весна 2025 (УПК)')
+        st.title('Весна 2026 (УПК)')
         total_games, total_draws, total_goals, total_assists, total_saves = season_filter(SPRING2026, UPK)
         st.subheader(f"Игр сыграно: {total_games} (из них ничьи: {total_draws})")
         st.subheader(f"Голов забито: {total_goals}")
