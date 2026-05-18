@@ -519,7 +519,7 @@ if menu == "УПК":
         filtered_stats_df['Очки'] = filtered_stats_df['Голы'] + filtered_stats_df['Пасы'] + filtered_stats_df['Победы']*2 + filtered_stats_df['Отстоял на ноль'] + filtered_stats_df['Ничьи']
         st.dataframe(filtered_stats_df, use_container_width=True, hide_index=True, height=750)
     elif sub_menu == "Личная стат.":
-        st.title('Зима 2025 (УПК)')
+        st.title('Весна 2025 (УПК)')
         players_df = season_filter_players_stats(SPRING2026, 2, UPK)
         stats_df = season_filter_stats(SPRING2026, UPK)
 
