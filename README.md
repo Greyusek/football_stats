@@ -7,7 +7,7 @@ Simple football stats streamlit (python) info page
 python -m venv venv
 source venv/Scripts/activate
 python -m pip install --upgrade pip
-pip install -r reqirements.txt
+pip install -r requirements.txt
 
 ## run server
 python -m streamlit run main.py
