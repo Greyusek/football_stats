@@ -562,185 +562,6 @@ def calculate_efficiency_index(
     return result
 
 
-
-def _normalize_series(series: pd.Series) -> pd.Series:
-    """Нормализация 0..1 по максимуму. Если максимум <= 0, возвращает нули."""
-    series = pd.to_numeric(series, errors="coerce").fillna(0)
-    max_value = float(series.max()) if not series.empty else 0.0
-    if max_value <= 0:
-        return pd.Series([0.0] * len(series), index=series.index)
-    return (series / max_value).clip(0, 1)
-
-
-def _bayesian_average(values: pd.Series, games: pd.Series, league_average: float, k: float = 10.0) -> pd.Series:
-    """Bayesian average: сглаживает малую выборку к среднему уровню лиги."""
-    values = pd.to_numeric(values, errors="coerce").fillna(0)
-    games = pd.to_numeric(games, errors="coerce").fillna(0)
-    return (games / (games + k)) * values + (k / (games + k)) * league_average
-
-
-def _reliability_label(games: float) -> str:
-    """Человекочитаемая надежность рейтинга по количеству расчетных игр."""
-    if games >= 30:
-        return "высокая"
-    if games >= 10:
-        return "средняя"
-    return "низкая"
-
-
-def _player_archetype(row: pd.Series) -> str:
-    """Простой авто-тип игрока по профилю статистики."""
-    goals = float(row.get("Голы", 0) or 0)
-    assists = float(row.get("Пасы", 0) or 0)
-    saves = float(row.get("На ноль", 0) or 0)
-    attack = float(row.get("Attack Skill", 0) or 0)
-    team = float(row.get("Team Impact", 0) or 0)
-    discipline = float(row.get("Discipline", 0) or 0)
-
-    if goals >= assists * 1.5 and goals >= 5:
-        return "Снайпер"
-    if assists >= goals * 1.4 and assists >= 5:
-        return "Плеймейкер"
-    if saves >= max(goals, assists) and saves >= 3:
-        return "Голкипер"
-    if team >= 0.75 and attack < 0.65:
-        return "Командный"
-    if attack >= 0.65 and team >= 0.70:
-        return "Универсал"
-    if discipline >= 0.95 and team >= 0.65:
-        return "Надежный"
-    return "Сбалансированный"
-
-
-def calculate_bayesian_overall_index(
-    stats_scope: pd.DataFrame,
-    teams_scope: pd.DataFrame,
-    k: float = 10.0,
-) -> pd.DataFrame:
-    """
-    Комбинированный Bayesian-рейтинг 0..1.
-
-    Overall = 0.55 × Attack Skill + 0.35 × Team Impact + 0.10 × Discipline
-
-    Attack Skill:
-        Bayesian average от (голы×3 + пасы×4 + saves×3 − фолы) / игры
-
-    Team Impact:
-        Bayesian average от (победы + 0.5×ничьи) / игры
-
-    Discipline:
-        1 − Bayesian average фолов/игру, нормализованный по худшему значению
-    """
-    if stats_scope.empty:
-        return pd.DataFrame()
-
-    data = attach_estimated_games(stats_scope, teams_scope)
-    for column in ["goals_on_date", "assists_on_date", "saves_on_date", "foul_on_date", "wins_on_date", "draws_on_date"]:
-        if column not in data.columns:
-            data[column] = 0
-        data[column] = pd.to_numeric(data[column], errors="coerce").fillna(0)
-
-    grouped = data.groupby("player_name", as_index=False).agg({
-        "estimated_games": "sum",
-        "goals_on_date": "sum",
-        "assists_on_date": "sum",
-        "saves_on_date": "sum",
-        "foul_on_date": "sum",
-        "wins_on_date": "sum",
-        "draws_on_date": "sum",
-    })
-
-    grouped["estimated_games"] = pd.to_numeric(grouped["estimated_games"], errors="coerce").fillna(0)
-    grouped = grouped[grouped["estimated_games"] > 0].copy()
-    if grouped.empty:
-        return pd.DataFrame()
-
-    grouped["attack_raw_total"] = (
-        grouped["goals_on_date"] * 3
-        + grouped["assists_on_date"] * 4
-        + grouped["saves_on_date"] * 3
-        - grouped["foul_on_date"]
-    )
-    grouped["attack_per_game"] = grouped["attack_raw_total"] / grouped["estimated_games"]
-    grouped["team_success_per_game"] = (
-        grouped["wins_on_date"] + 0.5 * grouped["draws_on_date"]
-    ) / grouped["estimated_games"]
-    grouped["fouls_per_game"] = grouped["foul_on_date"] / grouped["estimated_games"]
-
-    total_games = float(grouped["estimated_games"].sum()) or 1.0
-    league_attack_avg = float(grouped["attack_raw_total"].sum()) / total_games
-    league_team_avg = float(grouped["wins_on_date"].sum() + 0.5 * grouped["draws_on_date"].sum()) / total_games
-    league_foul_avg = float(grouped["foul_on_date"].sum()) / total_games
-
-    grouped["attack_bayes"] = _bayesian_average(grouped["attack_per_game"], grouped["estimated_games"], league_attack_avg, k)
-    grouped["team_bayes"] = _bayesian_average(grouped["team_success_per_game"], grouped["estimated_games"], league_team_avg, k)
-    grouped["foul_bayes"] = _bayesian_average(grouped["fouls_per_game"], grouped["estimated_games"], league_foul_avg, k)
-
-    grouped["attack_skill"] = _normalize_series(grouped["attack_bayes"])
-    grouped["team_impact"] = grouped["team_bayes"].clip(0, 1)
-
-    max_foul_rate = float(grouped["foul_bayes"].max()) if not grouped.empty else 0.0
-    if max_foul_rate <= 0:
-        grouped["discipline"] = 1.0
-    else:
-        grouped["discipline"] = (1 - grouped["foul_bayes"] / max_foul_rate).clip(0, 1)
-
-    grouped["overall"] = (
-        0.55 * grouped["attack_skill"]
-        + 0.35 * grouped["team_impact"]
-        + 0.10 * grouped["discipline"]
-    ).clip(0, 1)
-
-    result = grouped.rename(columns={
-        "player_name": "Игрок",
-        "estimated_games": "Игры",
-        "goals_on_date": "Голы",
-        "assists_on_date": "Пасы",
-        "saves_on_date": "На ноль",
-        "foul_on_date": "Фолы",
-        "wins_on_date": "Победы",
-        "draws_on_date": "Ничьи",
-        "attack_per_game": "Атака/игру",
-        "team_success_per_game": "Командный успех/игру",
-        "fouls_per_game": "Фолы/игру",
-        "attack_skill": "Attack Skill",
-        "team_impact": "Team Impact",
-        "discipline": "Discipline",
-        "overall": "Overall",
-    })
-
-    result["Надежность"] = result["Игры"].apply(_reliability_label)
-
-    # Округления для отображения
-    result["Игры"] = result["Игры"].apply(ceil_number).astype(int)
-    for column in ["Overall", "Attack Skill", "Team Impact", "Discipline", "Атака/игру", "Командный успех/игру", "Фолы/игру"]:
-        if column in result.columns:
-            result[column] = pd.to_numeric(result[column], errors="coerce").fillna(0).round(3)
-
-    result["Тип"] = result.apply(_player_archetype, axis=1)
-
-    columns = [
-        "Игрок",
-        "Overall",
-        "Attack Skill",
-        "Team Impact",
-        "Discipline",
-        "Игры",
-        "Надежность",
-        "Тип",
-        "Голы",
-        "Пасы",
-        "На ноль",
-        "Фолы",
-        "Победы",
-        "Ничьи",
-        "Атака/игру",
-        "Командный успех/игру",
-        "Фолы/игру",
-    ]
-    return result[columns].sort_values(["Overall", "Attack Skill", "Team Impact"], ascending=False)
-
-
 def calculate_partners(
     stats_scope: pd.DataFrame,
     teams_scope: pd.DataFrame,
@@ -849,44 +670,37 @@ def show_analytics(stats: pd.DataFrame, teams: pd.DataFrame, rules: pd.DataFrame
     if selected_period == "За все время":
         scope_stats = stats.copy()
         scope_teams = teams.copy()
+        efficiency = calculate_efficiency_index(scope_stats, scope_teams, rules=rules)
         partners_rule = None
         partners_rules = rules
     else:
         rule = get_tournament_rules(rules, label_to_id[selected_period])
         scope_stats, scope_teams = filter_by_tournament(stats, teams, rule)
+        efficiency = calculate_efficiency_index(scope_stats, scope_teams, rule=rule)
         partners_rule = rule
         partners_rules = None
 
-    st.subheader("Overall Skill Index")
-
     st.markdown(
         """
-        **Главная формула рейтинга:**  
-        `Overall = 0.55 × Attack Skill + 0.35 × Team Impact + 0.10 × Discipline`
+        **Формула индекса эффективности:**  
+        `Индекс = 0.7 × результативность + 0.3 × регулярность`  
+        `результативность = очки игрока за игру / лучший показатель очков за игру`  
+        `регулярность = расчетное количество игр игрока / максимум игр среди игроков`
 
-        **Attack Skill** — персональный вклад в результативность:  
-        `(голы×3 + пасы×4 + saves×3 − фолы) / игры`, затем Bayesian correction.
-
-        **Team Impact** — командная полезность:  
-        `(победы + 0.5×ничьи) / игры`, затем Bayesian correction.
-
-        **Discipline** — дисциплина игрока:  
-        чем меньше фолов за игру, тем выше показатель.
-
-        **Bayesian correction:**  
-        `rating = (games / (games + 10)) × player_average + (10 / (games + 10)) × league_average`
-
-        Это снижает перекос в пользу игроков, которые просто чаще ходят, и одновременно не дает игрокам с 1–2 удачными днями сразу улетать в топ.
+        Важно: расчет выполняется отдельно по каждому игровому дню и команде, а не всем сезоном одним скопом.
+        В исходных данных есть игровые дни, победы и ничьи команд, но нет явных поражений.
+        Поэтому количество игр команды за день восстанавливается расчетно по логике ротации команд:
+        победитель остается, проигравший садится; при ничьей для 3 команд садится команда с большей текущей серией игр,
+        для 4+ команд садятся обе команды.
         """
     )
 
-    overall = calculate_bayesian_overall_index(scope_stats, scope_teams, k=10.0)
-    if overall.empty:
+    if efficiency.empty:
         st.info("Недостаточно данных для аналитики.")
         return
 
-    st.subheader("Рейтинг игроков")
-    full_dataframe(overall, height=480)
+    st.subheader("Индекс эффективности игроков")
+    full_dataframe(efficiency, height=420)
 
     st.subheader("Предпочтительные партнеры")
     names = sorted(scope_stats["player_name"].dropna().unique())
@@ -907,10 +721,10 @@ def show_analytics(stats: pd.DataFrame, teams: pd.DataFrame, rules: pd.DataFrame
         full_dataframe(partners, height=360)
 
     st.subheader("Короткие выводы")
-    best_player = overall.iloc[0]
+    best_player = efficiency.iloc[0]
     st.write(
-        "Лучший Overall в выбранном периоде: **{}** — **{}**. Тип игрока: **{}**. Надежность данных: **{}**.".format(
-            best_player["Игрок"], best_player["Overall"], best_player["Тип"], best_player["Надежность"]
+        "Лучший индекс в выбранном периоде: **{}** — **{}**.".format(
+            best_player["Игрок"], best_player["Индекс"]
         )
     )
     if not partners.empty:
@@ -920,7 +734,6 @@ def show_analytics(stats: pd.DataFrame, teams: pd.DataFrame, rules: pd.DataFrame
                 player_name, best_partner["Партнер"], best_partner["Индекс связки"]
             )
         )
-
 
 def show_home(rules: pd.DataFrame, stats: pd.DataFrame, teams: pd.DataFrame):
     st.title("Футбол в МИТИНО")
