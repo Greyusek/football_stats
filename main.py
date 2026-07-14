@@ -1,4 +1,6 @@
 from typing import Dict, List, Tuple
+from pathlib import Path
+import html
 import math
 
 import pandas as pd
@@ -79,6 +81,46 @@ st.markdown(
         .js-plotly-plot {
             margin-left: 0 !important;
         }
+
+        .achievement-card {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 18px;
+            margin: 0 0 16px 0;
+            border: 1px solid rgba(128, 128, 128, 0.28);
+            border-radius: 14px;
+            background: rgba(128, 128, 128, 0.06);
+        }
+
+        .achievement-card img {
+            width: 112px;
+            height: 112px;
+            object-fit: cover;
+            border-radius: 10px;
+            flex: 0 0 112px;
+        }
+
+        .achievement-card .achievement-placeholder {
+            width: 112px;
+            height: 112px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(128, 128, 128, 0.18);
+            font-size: 2.5rem;
+            flex: 0 0 112px;
+        }
+
+        .achievement-card h3 {
+            margin: 0 0 8px 0 !important;
+        }
+
+        .achievement-progress {
+            margin-top: 10px;
+            font-weight: 700;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -132,6 +174,8 @@ def load_data():
     stats = pd.read_csv("stats.csv")
     teams = pd.read_csv("teams.csv")
     rules = pd.read_csv("tournaments_n_rules.csv")
+    achievements = pd.read_csv("achievements.csv")
+    hall_of_fame = pd.read_csv("hall_of_fame.csv")
 
     for df in (stats, teams):
         if "tournament" in df.columns and "tournament_id" not in df.columns:
@@ -167,7 +211,22 @@ def load_data():
             rules[column] = 0
         rules[column] = pd.to_numeric(rules[column], errors="coerce").fillna(0)
 
-    return players, stats, teams, rules
+    for df, columns in ((achievements, ["achievement_id"]), (hall_of_fame, ["achievement_id"])):
+        for column in columns:
+            if column in df.columns:
+                df[column] = pd.to_numeric(df[column], errors="coerce").astype("Int64")
+
+    if "date" in hall_of_fame.columns:
+        hall_of_fame["date"] = pd.to_datetime(hall_of_fame["date"], errors="coerce")
+
+    for column in ("achievement_name", "description", "image_path"):
+        if column in achievements.columns:
+            achievements[column] = achievements[column].fillna("").astype(str)
+
+    if "proof_link" in hall_of_fame.columns:
+        hall_of_fame["proof_link"] = hall_of_fame["proof_link"].fillna("").astype(str)
+
+    return players, stats, teams, rules, achievements, hall_of_fame
 
 
 def centered_dataframe(df: pd.DataFrame, height: int = None, width: int = 560, use_container_width: bool = False):
@@ -1084,16 +1143,150 @@ def show_personal_stats(players_stats: pd.DataFrame, stats_filtered: pd.DataFram
     st.plotly_chart(fig, use_container_width=True)
 
 
+
+def _achievement_id_from_query():
+    """Возвращает ID достижения из URL вида ?achievement=1."""
+    try:
+        value = st.query_params.get("achievement")
+        if isinstance(value, list):
+            value = value[0] if value else None
+        return int(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _player_id_column(players: pd.DataFrame) -> str:
+    if "player_id" in players.columns:
+        return "player_id"
+    return players.columns[0]
+
+
+def _achievement_image_html(image_path: str) -> str:
+    path = str(image_path or "").strip()
+    if path and Path(path).is_file():
+        import base64
+        mime = "image/png" if path.lower().endswith(".png") else "image/jpeg"
+        encoded = base64.b64encode(Path(path).read_bytes()).decode("ascii")
+        return f'<img src="data:{mime};base64,{encoded}" alt="Достижение">'
+    return '<div class="achievement-placeholder">🏆</div>'
+
+
+def _achievement_recipient_count(hall_of_fame: pd.DataFrame, achievement_id: int) -> int:
+    if hall_of_fame.empty or "achievement_id" not in hall_of_fame.columns or "player_id" not in hall_of_fame.columns:
+        return 0
+    mask = hall_of_fame["achievement_id"] == achievement_id
+    return int(hall_of_fame.loc[mask, "player_id"].dropna().nunique())
+
+
+def show_achievement_detail(
+    achievement_id: int,
+    players: pd.DataFrame,
+    achievements: pd.DataFrame,
+    hall_of_fame: pd.DataFrame,
+):
+    row = achievements[achievements["achievement_id"] == achievement_id]
+    if row.empty:
+        st.error("Достижение не найдено.")
+        if st.button("← Вернуться к достижениям"):
+            st.query_params.clear()
+            st.rerun()
+        return
+
+    achievement = row.iloc[0]
+    st.title(str(achievement.get("achievement_name", "Достижение")))
+    description = str(achievement.get("description", "")).strip()
+    if description:
+        st.write(description)
+
+    image_path = str(achievement.get("image_path", "")).strip()
+    if image_path and Path(image_path).is_file():
+        st.image(image_path, width=220)
+
+    if st.button("← Все достижения"):
+        st.query_params.clear()
+        st.rerun()
+
+    records = hall_of_fame[hall_of_fame["achievement_id"] == achievement_id].copy()
+    st.subheader("Обладатели достижения")
+    if records.empty:
+        st.info("Пока это достижение никто не получил.")
+        return
+
+    player_key = _player_id_column(players)
+    player_names = players[[player_key, "player_name"]].drop_duplicates(player_key)
+    records = records.merge(player_names, left_on="player_id", right_on=player_key, how="left")
+    records["player_name"] = records["player_name"].fillna(records["player_id"].astype(str))
+    records["Дата"] = records["date"].dt.strftime("%d.%m.%Y").fillna("")
+
+    table_lines = ["| Игрок | Дата | Видео |", "|---|---:|---|"]
+    for _, record in records.sort_values("date", ascending=False).iterrows():
+        player_name = str(record.get("player_name", "")).replace("|", "\\|")
+        date_text = str(record.get("Дата", "")).replace("|", "\\|")
+        proof_link = str(record.get("proof_link", "") or "").strip()
+        proof = f"[ПРУФ]({proof_link})" if proof_link else "—"
+        table_lines.append(f"| {player_name} | {date_text} | {proof} |")
+    st.markdown("\n".join(table_lines))
+
+
+def show_achievements(
+    players: pd.DataFrame,
+    achievements: pd.DataFrame,
+    hall_of_fame: pd.DataFrame,
+):
+    selected_id = _achievement_id_from_query()
+    if selected_id is not None:
+        show_achievement_detail(selected_id, players, achievements, hall_of_fame)
+        return
+
+    st.title("Достижения")
+    st.write("Зал славы участников и памятные футбольные достижения.")
+
+    if achievements.empty:
+        st.info("Список достижений пока пуст. Заполните лист Achievements в Excel и запустите converter.py.")
+        return
+
+    player_key = _player_id_column(players)
+    total_players = int(players[player_key].dropna().nunique()) if not players.empty else 0
+
+    for achievement in achievements.sort_values("achievement_id").itertuples():
+        achievement_id = int(achievement.achievement_id)
+        name = html.escape(str(achievement.achievement_name))
+        description = html.escape(str(achievement.description or ""))
+        received = _achievement_recipient_count(hall_of_fame, achievement_id)
+        percent = (received / total_players * 100) if total_players else 0.0
+        image_html = _achievement_image_html(str(achievement.image_path or ""))
+
+        st.markdown(
+            f"""
+            <div class="achievement-card">
+                {image_html}
+                <div>
+                    <h3>{name}</h3>
+                    <div>{description}</div>
+                    <div class="achievement-progress">Получили: {received} из {total_players} игроков — {percent:.1f}%</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Открыть достижение", key=f"achievement_{achievement_id}"):
+            st.query_params["achievement"] = str(achievement_id)
+            st.rerun()
+
 def main():
-    players, stats, teams, rules = load_data()
+    players, stats, teams, rules, achievements, hall_of_fame = load_data()
 
     main_section = st.sidebar.radio(
         "Меню:",
-        ["Главная", "Аналитика", "Турниры"]
+        ["Главная", "Достижения", "Аналитика", "Турниры"]
     )
 
     if main_section == "Главная":
         show_home(rules, stats, teams)
+        return
+
+    if main_section == "Достижения":
+        show_achievements(players, achievements, hall_of_fame)
         return
 
     if main_section == "Аналитика":
