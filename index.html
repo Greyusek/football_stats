@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Футбол в Митино</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">Футбол в Митино</div>
+    <nav id="main-menu" class="menu"></nav>
+    <div id="tournament-filters" class="filters hidden">
+      <label>Турнир<select id="tournament-select"></select></label>
+      <label>Сезон<select id="season-select"></select></label>
+      <label>Раздел<select id="section-select"></select></label>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div id="status" class="status">Загрузка данных…</div>
+    <div id="app"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
