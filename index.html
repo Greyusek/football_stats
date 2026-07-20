@@ -4,11 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Футбол в Митино</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="brand">Футбол в Митино</div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="brand">
+        <img class="brand-logo" src="favicon.svg" alt="МЯЧ">
+        <span class="brand-text">Футбол в Митино</span>
+      </div>
+      <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Скрыть боковое меню" aria-expanded="true">
+        <span class="sidebar-toggle-icon" aria-hidden="true">‹</span>
+      </button>
+    </div>
     <nav id="main-menu" class="menu"></nav>
     <div id="tournament-filters" class="filters hidden">
       <label>Турнир<select id="tournament-select"></select></label>
@@ -20,6 +29,7 @@
   <main class="content">
     <div id="status" class="status">Загрузка данных…</div>
     <div id="app"></div>
+    <footer class="site-footer">© MitinoSarayTeam</footer>
   </main>
 
   <script src="app.js"></script>

@@ -87,10 +87,31 @@ function aggregate(stats,rule){ const map=new Map(); for(const r of stats){ cons
 function summary(stats,teams){ const wins=teams.reduce((s,r)=>s+num(r.wins_on_date),0); const draws=Math.floor(teams.reduce((s,r)=>s+num(r.draws_on_date),0)/2); return {games:wins+draws,draws,goals:stats.reduce((s,r)=>s+num(r.goals_on_date),0),assists:stats.reduce((s,r)=>s+num(r.assists_on_date),0),saves:stats.reduce((s,r)=>s+num(r.saves_on_date),0),fouls:stats.reduce((s,r)=>s+num(r.foul_on_date),0)}; }
 function title(rule){ return `${escapeHTML(rule.season)} (${escapeHTML(String(rule.tournament_name).toUpperCase())})`; }
 
+
+function setupSidebar(){
+  const button=$('#sidebar-toggle');
+  const setCollapsed=collapsed=>{
+    document.body.classList.toggle('sidebar-collapsed',collapsed);
+    button.setAttribute('aria-expanded',String(!collapsed));
+    button.setAttribute('aria-label',collapsed?'Показать боковое меню':'Скрыть боковое меню');
+    const icon=button.querySelector('.sidebar-toggle-icon');
+    if(icon) icon.textContent=collapsed?'›':'‹';
+    try { localStorage.setItem('football-sidebar-collapsed',collapsed?'1':'0'); } catch(_) {}
+  };
+  let collapsed=window.innerWidth<=820;
+  try { const saved=localStorage.getItem('football-sidebar-collapsed'); if(saved!==null) collapsed=saved==='1'; } catch(_) {}
+  setCollapsed(collapsed);
+  button.onclick=()=>setCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+  document.addEventListener('click',e=>{
+    if(window.innerWidth<=820 && !document.body.classList.contains('sidebar-collapsed') && !e.target.closest('#sidebar') && !e.target.closest('#sidebar-toggle')) setCollapsed(true);
+  });
+  $('#main-menu').addEventListener('click',()=>{ if(window.innerWidth<=820) setCollapsed(true); });
+}
+
 function setupMenu(){
-  const pages=[['home','Главная'],['achievements','Достижения'],['analytics','Аналитика'],['tournaments','Турниры']];
-  $('#main-menu').innerHTML=pages.map(([id,label])=>`<button data-page="${id}">${label}</button>`).join('');
-  $('#main-menu').onclick=e=>{ const b=e.target.closest('button'); if(!b)return; state.page=b.dataset.page; render(); };
+  const pages=[['home','Главная','⌂'],['achievements','Достижения','★'],['analytics','Аналитика','▥'],['tournaments','Турниры','⚽']];
+  $('#main-menu').innerHTML=pages.map(([id,label,icon])=>`<button data-page="${id}" title="${label}"><span class="menu-icon" aria-hidden="true">${icon}</span><span class="menu-label">${label}</span></button>`).join('');
+  $('#main-menu').onclick=e=>{ const b=e.target.closest('button'); if(!b)return; state.page=b.dataset.page; if(state.page==='tournaments' && window.innerWidth>820 && document.body.classList.contains('sidebar-collapsed')) document.body.classList.remove('sidebar-collapsed'); render(); };
   $('#tournament-select').onchange=e=>{ state.tournament=e.target.value; fillSeasons(); render(); };
   $('#season-select').onchange=e=>{ state.season=e.target.value; render(); };
   $('#section-select').onchange=e=>{ state.section=e.target.value; render(); };
@@ -287,5 +308,5 @@ function renderAnalytics(){
 }
 function renderTournament(){ const rule=getRule(); if(!rule){app.innerHTML='<div class="card">Турнир не выбран.</div>';return;} const {stats,teams}=scope(rule); if(state.section==='summary')renderSummary(rule,stats,teams); else if(state.section==='top')renderTop(rule,stats); else if(state.section==='games')renderGames(rule,stats); else renderPersonal(rule,stats); }
 function render(){ document.querySelectorAll('#main-menu button').forEach(b=>b.classList.toggle('active',b.dataset.page===state.page)); $('#tournament-filters').classList.toggle('hidden',state.page!=='tournaments'); if(state.page==='home')renderHome(); else if(state.page==='achievements')renderAchievements(); else if(state.page==='analytics')renderAnalytics(); else renderTournament(); }
-async function init(){ try { setupMenu(); const entries=await Promise.all(Object.entries(FILES).map(async([k,p])=>[k,await loadCSV(p)])); state.data=Object.fromEntries(entries); normalize(); fillFilters(); $('#status').classList.add('hidden'); render(); } catch(e){ $('#status').className='status error'; $('#status').innerHTML=`Не удалось загрузить CSV: <b>${escapeHTML(e.message)}</b><br>Откройте сайт через локальный сервер, а не двойным кликом по index.html.`; console.error(e); } }
+async function init(){ try { setupSidebar(); setupMenu(); const entries=await Promise.all(Object.entries(FILES).map(async([k,p])=>[k,await loadCSV(p)])); state.data=Object.fromEntries(entries); normalize(); fillFilters(); $('#status').classList.add('hidden'); render(); } catch(e){ $('#status').className='status error'; $('#status').innerHTML=`Не удалось загрузить CSV: <b>${escapeHTML(e.message)}</b><br>Откройте сайт через локальный сервер, а не двойным кликом по index.html.`; console.error(e); } }
 init();
